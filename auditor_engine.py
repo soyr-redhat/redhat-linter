@@ -1,58 +1,60 @@
-import json
-import os
+from langchain_ollama import ChatOllama
+from langchain.agents import create_agent
+from langchain_mcp_adapters.client import MultiServerMCPClient
+import asyncio
 from parser import RedHatParser
-from langchain_ollama import ChatOllama 
-# Use the modern agent executor logic
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.tools import Tool
-# Ensure your MCP server file is named mcp_server.py
-from mcp_server import search_style_guides 
-
-style_tool = Tool(
-    name="search_redhat_style",
-    func=search_style_guides,
-    description="Searches Red Hat style guides for acronyms, tone, and brevity rules."
-)
 
 class RedHatAuditor:
     def __init__(self, model_name="llama3.1"):
-        # Local Ollama instance
-        self.llm = ChatOllama(model=model_name, temperature=0) 
-        self.tools = [style_tool]
-        
-        self.prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are the Red Hat Editorial Auditor. You MUST use the 'search_redhat_style' tool to verify rules."),
-            ("human", "{input}"),
-            MessagesPlaceholder(variable_name="agent_scratchpad"),
-        ])
-        
-        # Modern tool-calling agent
-        agent = create_tool_calling_agent(self.llm, self.tools, self.prompt)
-        self.executor = AgentExecutor(agent=agent, tools=self.tools, verbose=True)
+        self.llm = ChatOllama(
+            model=model_name,
+            temperature=0,
+            validate_model_on_init=True,
+            format="json" 
+        )
+        self.system_prompt = (
+            "You are the Red Hat Editorial Auditor. Audit content for: "
+            "Brevity, Tone, and Clarity. Output your final audit in JSON format."
+        )
 
-    def run_audit(self, doc_path):
+    async def initialize_tools(self):
+        self.mcp_client = MultiServerMCPClient({
+            "style_guide": {
+                "command": "python",
+                "args": ["redhat_style_server.py"], # Verify this filename exists!
+                "transport": "stdio"
+            }
+        })
+        self.tools = await self.mcp_client.get_tools()
+        self.agent = create_agent(
+            model=self.llm,
+            tools=self.tools,
+            system_prompt=self.system_prompt
+        )
+
+    async def run_audit(self, doc_path):
         parser = RedHatParser(doc_path)
         chunks = parser.get_structured_content()
         report = []
 
         for chunk in chunks:
-            query = f"Audit this {chunk['type']}: {chunk['text']}"
-            result = self.executor.invoke({"input": query})
+            # ReAct Loop via LangGraph
+            query = {"messages": [("human", f"Audit this {chunk['type']}: {chunk['text']}")]}
+            result = await self.agent.ainvoke(query)
+            feedback = result["messages"][-1].content
             
             report.append({
                 "text": chunk['text'],
                 "type": chunk['type'],
-                "feedback": result["output"]
+                "feedback": feedback
             })
-            
         return report
 
+    # --- THE MISSING METHOD ---
     def calculate_metrics(self, report):
-        # Your scoring logic remains the same
         metrics = {"Clear": 100, "Concise": 100, "Conversational": 100, "Credible": 100, "Compelling": 100}
         for item in report:
-            f = item['feedback'].lower()
-            if "brevity" in f or "wordy" in f: metrics["Concise"] -= 5
-            if "jargon" in f or "acronym" in f: metrics["Clear"] -= 5
-        return metrics
+            f = str(item['feedback']).lower()
+            if any(w in f for w in ["filler", "brevity", "long"]): metrics["Concise"] -= 5
+            if any(w in f for w in ["jargon", "acronym"]): metrics["Clear"] -= 5
+        return {k: max(v, 0) for k, v in metrics.items()}

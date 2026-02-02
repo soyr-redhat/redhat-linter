@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-import json
+import asyncio
 from parser import RedHatParser, load_guides
 from auditor_engine import RedHatAuditor
 
@@ -55,10 +55,16 @@ if uploaded_file:
     if st.button("🚀 Run Red Hat Style Audit"):
         with st.spinner("Agent is consulting style guides..."):
             auditor = RedHatAuditor()
-            # Store results in session state so they persist
-            report = auditor.run_audit(temp_path)
+            
+            # We must run the async methods inside asyncio.run
+            async def run_full_process():
+                await auditor.initialize_tools()
+                return await auditor.run_audit(temp_path)
+            
+            report = asyncio.run(run_full_process())
+            
             st.session_state['audit_results'] = report
-            st.session_state['metrics'] = auditor.calculate_metrics(report)   
+            st.session_state['metrics'] = auditor.calculate_metrics(report) 
     st.divider()
 
     # 3. Side-by-Side Audit View

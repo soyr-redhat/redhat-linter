@@ -1,19 +1,16 @@
 import os
 import glob
-from fastmcp import FastMCP
+# This is the stable path for the new MCP SDK
+from mcp.server.fastmcp import FastMCP
 
-# Initialize FastMCP server
 mcp = FastMCP("RedHatStyleAuditor")
 
 GUIDES_DIR = "./guides"
 
 @mcp.tool()
 def search_style_guides(query: str) -> str:
-    """
-    Searches the Red Hat style guides for a specific rule or topic.
-    """
+    """Searches Red Hat style guides for a specific rule."""
     results = []
-    # Ensure the directory exists so it doesn't crash
     if not os.path.exists(GUIDES_DIR):
         return "Error: /guides directory not found."
 
