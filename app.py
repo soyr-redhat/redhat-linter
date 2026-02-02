@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import json
 from parser import RedHatParser, load_guides
+from auditor_engine import RedHatAuditor
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -42,26 +43,21 @@ st.write("Drag in your .docx draft to analyze it against the Red Hat Corporate S
 uploaded_file = st.file_uploader("Upload Document", type=["docx"])
 
 if uploaded_file:
-    # 1. Parse Document
-    # We save temporarily to allow the parser to read it
     temp_path = f"temp_{uploaded_file.name}"
     with open(temp_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
 
+    # Initialize Parser
     parser = RedHatParser(temp_path)
     structured_content = parser.get_structured_content()
 
-    # 2. Metrics Header (The 5 Cs)
-    st.subheader("Performance Metrics")
-    m1, m2, m3, m4, m5 = st.columns(5)
+    # Create a "Run Audit" Button
+    if st.button("🚀 Run Red Hat Style Audit"):
+        with st.spinner("Agent is consulting style guides..."):
+            auditor = RedHatAuditor()
+            # Store results in session state so they persist
+            st.session_state['audit_results'] = auditor.run_audit(temp_path)
     
-    # Mock scores (In the next step, these will be calculated by auditor_engine.py)
-    m1.metric("Clear", "82%", "Helpful")
-    m2.metric("Concise", "65%", "-5%", delta_color="inverse")
-    m3.metric("Conversational", "91%", "Authentic")
-    m4.metric("Credible", "78%", "Needs Citations")
-    m5.metric("Compelling", "88%", "Brave")
-
     st.divider()
 
     # 3. Side-by-Side Audit View
@@ -72,30 +68,17 @@ if uploaded_file:
         for item in structured_content:
             if item['type'] == "heading":
                 st.markdown(f"### {item['text']}")
-            elif item['type'] == "list_item":
-                st.markdown(f"* {item['text']}")
             else:
                 st.write(item['text'])
 
     with col_audit:
-        st.subheader("Audit & Suggestions")
-        
-        # This is where the Auditor Engine would output its specific flags
-        # For now, we show a sample of how the agent's feedback will look
-        for item in structured_content:
-            # Placeholder for AI Logic: 
-            # In your real loop, you'd call auditor_engine.audit(item['text'])
-            if "In order to" in item['text']:
-                st.warning(f"**Brevity Violation:** Replace 'In order to' with 'To'.")
-            
-            if item['type'] == "heading" and any(word[0].isupper() for word in item['text'].split()[1:]):
-                 st.error(f"**Formatting:** Use sentence case for headlines.")
+        st.subheader("Agent Critique")
+        if 'audit_results' in st.session_state:
+            for result in st.session_state['audit_results']:
+                # Display the AI feedback in a nice card
+                with st.expander(f"Analysis: {result['text'][:40]}...", expanded=True):
+                    st.write(result['feedback'])
+        else:
+            st.info("Click 'Run Red Hat Style Audit' to see feedback.")
 
-            # Add a spacer to keep columns somewhat aligned
-            st.write("") 
-
-    # Cleanup
     os.remove(temp_path)
-
-else:
-    st.warning("Please upload a .docx file to begin.")

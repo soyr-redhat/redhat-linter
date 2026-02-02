@@ -1,57 +1,68 @@
 import json
 from parser import RedHatParser
+from langchain_ollama import ChatOllama # Use the Ollama-specific class
+from langchain_classic.agents import AgentExecutor
+from langchain.agents import create_tool_calling_agent # Use the generic tool agent
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.tools import Tool
+from mcp_server import search_style_guides 
+
+style_tool = Tool(
+    name="search_redhat_style",
+    func=search_style_guides,
+    description="Searches Red Hat style guides for acronyms, tone, and brevity rules."
+)
 
 class RedHatAuditor:
-    def __init__(self, model_name="llama3"):
-        self.model = model_name
-        # The system prompt is the "Policy" the agent must follow
-        self.system_prompt = """
-        You are the Red Hat Editorial Auditor. 
-        You have access to MCP tools to look up official Red Hat Style guides.
+    def __init__(self):
+        # Point this to your local Ollama instance (ensure 'ollama run llama3' works)
+        self.llm = ChatOllama(
+            model="llama3", 
+            temperature=0,
+            format="json" # Useful for forcing structured feedback
+        ) 
+        self.tools = [style_tool]
         
-        PROCEDURE:
-        1. For every chunk of text, check for:
-           - Sentence Case (Headings)
-           - Acronym definitions (First use)
-           - Filler words (from brevity_rules.md)
-           - Conversational tone (The 5 Cs)
-        2. Use the 'search_style_guides' tool whenever you are unsure.
-        3. Output your findings in a structured format.
-        """
-
-    def audit_document(self, doc_path):
+        self.prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are the Red Hat Editorial Auditor. You must use the 'search_redhat_style' tool to check every sentence against official guides."),
+            ("human", "{input}"),
+            MessagesPlaceholder(variable_name="agent_scratchpad"),
+        ])
+        
+        # 'create_tool_calling_agent' is the modern standard for models that support tools (like Llama 3)
+        agent = create_tool_calling_agent(self.llm, self.tools, self.prompt)
+        self.executor = AgentExecutor(agent=agent, tools=self.tools, verbose=True)
+    def run_audit(self, doc_path):
         parser = RedHatParser(doc_path)
         chunks = parser.get_structured_content()
-        full_report = []
-
-        print(f"Starting audit for {doc_path}...")
+        report = []
 
         for chunk in chunks:
-            # We pass the 'type' (heading/body) so the AI knows which rules apply
-            prompt = f"Type: {chunk['type']}\nText: {chunk['text']}"
+            # We ask the agent to specifically look for violations in this chunk
+            query = f"Audit this Red Hat {chunk['type']}: {chunk['text']}"
+            result = self.executor.invoke({"input": query})
             
-            # This is a conceptual call to the LLM + MCP Tool
-            # In reality, you'd use something like: agent.invoke(prompt)
-            response = self.call_agent_with_mcp(prompt)
-            
-            full_report.append({
-                "original": chunk['text'],
+            report.append({
+                "text": chunk['text'],
                 "type": chunk['type'],
-                "audit": response
+                "feedback": result["output"]
             })
+            
+        return report
 
-        return full_report
+    def calculate_metrics(self, report):
+        # Simple logic: count the number of times "Brevity" or "Clarity" 
+        # was mentioned in the feedback strings.
+        metrics = {"Clear": 100, "Concise": 100, "Conversational": 100}
+        for item in report:
+            if "brevity" in item['feedback'].lower():
+                metrics["Concise"] -= 5
+            if "jargon" in item['feedback'].lower():
+                metrics["Clear"] -= 5
+        return metrics
 
-    def call_agent_with_mcp(self, prompt):
-        # This is where the LLM decides to call search_style_guides("acronyms")
-        # if it sees an acronym it doesn't recognize.
-        pass 
-
-# --- Execution ---
 if __name__ == "__main__":
+    # Test run
     auditor = RedHatAuditor()
-    report = auditor.audit_document("internal_draft.docx")
-    
-    # Save the report for your Streamlit UI to display
-    with open("audit_results.json", "w") as f:
-        json.dump(report, f, indent=4)
+    results = auditor.run_audit("test_blog.docx")
+    print(json.dumps(results, indent=2))
