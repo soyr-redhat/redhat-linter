@@ -5,7 +5,8 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("RedHatStyleAuditor")
 
-GUIDES_DIR = "./guides"
+current_dir = os.path.dirname(os.path.abspath(__file__))
+GUIDES_DIR = os.path.join(current_dir, "guides")
 
 @mcp.tool()
 def search_style_guides(query: str) -> str:
