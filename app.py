@@ -56,8 +56,9 @@ if uploaded_file:
         with st.spinner("Agent is consulting style guides..."):
             auditor = RedHatAuditor()
             # Store results in session state so they persist
-            st.session_state['audit_results'] = auditor.run_audit(temp_path)
-    
+            report = auditor.run_audit(temp_path)
+            st.session_state['audit_results'] = report
+            st.session_state['metrics'] = auditor.calculate_metrics(report)   
     st.divider()
 
     # 3. Side-by-Side Audit View
