@@ -13,6 +13,8 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+OLLAMA_BASE_URL = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip('/')
+
 # Custom CSS for the Side-by-Side Editor and Status Animations
 st.markdown("""
     <style>
@@ -62,7 +64,6 @@ with st.sidebar:
     
     # Dynamic Model Selector
     try:
-        OLLAMA_BASE_URL = os.getenv("OLLAMA_HOST", "http://localhost:11434")
         resp = httpx.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=1)
         models = [m['name'] for m in resp.json()['models']]
         selected_model = st.selectbox("LLM Model", options=models, index=0)
@@ -107,7 +108,7 @@ if uploaded_file:
         async def update_ui_status(text):
             status_placeholder.markdown(f"<p class='status-text'>{text}</p>", unsafe_allow_html=True)
 
-        auditor = RedHatAuditor(model_name=selected_model)
+        auditor = RedHatAuditor(model_name=selected_model, base_url=OLLAMA_BASE_URL)
         
         async def perform_audit():
             await auditor.initialize_tools()
