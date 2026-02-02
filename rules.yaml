@@ -1,0 +1,17 @@
+rules:
+  - id: "acronym_first_use"
+    category: "Clarity"
+    guideline: "Spell out the full term on first use, followed by the acronym in parentheses."
+    example_bad: "RHOCP is the foundation of our cloud."
+    example_good: "Red Hat OpenShift Container Platform (RHOCP) is the foundation..."
+  
+  - id: "filler_removal"
+    category: "Concise"
+    guideline: "Avoid 'in order to'. Use 'to'."
+    pattern: "in order to"
+    replacement: "to"
+
+  - id: "conversational_tone"
+    category: "Conversational"
+    guideline: "Write to people, not organizations. Use 'You' and 'We'."
+    forbidden_phrases: ["maximum business impact", "strategic alignment"]
