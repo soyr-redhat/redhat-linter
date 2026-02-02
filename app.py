@@ -62,7 +62,8 @@ with st.sidebar:
     
     # Dynamic Model Selector
     try:
-        resp = httpx.get("http://localhost:11434/api/tags", timeout=1)
+        OLLAMA_BASE_URL = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        resp = httpx.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=1)
         models = [m['name'] for m in resp.json()['models']]
         selected_model = st.selectbox("LLM Model", options=models, index=0)
     except:
