@@ -98,3 +98,4 @@ class RedHatAuditor:
             if any(w in f for w in ["jargon", "acronym", "unclear"]): metrics["Clear"] -= 10
             if any(w in f for w in ["formal", "passive", "corporate"]): metrics["Conversational"] -= 10
         return {k: max(v, 0) for k, v in metrics.items()}
+
