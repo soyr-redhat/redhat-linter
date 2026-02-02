@@ -12,7 +12,7 @@ RHEA is an editorial tool for auditing technical content against Red Hat brand v
 The project is designed for a "zero-config" experience. Simply clone and run:
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/soyr-redhat/redhat-linter
 cd RedHatLinter
 ./startup.sh
 ```
