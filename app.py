@@ -3,6 +3,7 @@ import os
 import asyncio
 import httpx
 import sys
+import json
 from auditor_engine import RedHatAuditor
 
 # --- 1. UI Configuration & Branding ---
@@ -13,6 +14,23 @@ st.set_page_config(
 )
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip('/')
+HIDDEN_GUIDES_FILE = ".hidden_guides.json"
+
+# Helper functions for persistent hidden guides
+def save_hidden_guides(hidden_set):
+    """Save hidden guides to file."""
+    with open(HIDDEN_GUIDES_FILE, "w") as f:
+        json.dump(list(hidden_set), f)
+
+def load_hidden_guides():
+    """Load hidden guides from file."""
+    if os.path.exists(HIDDEN_GUIDES_FILE):
+        try:
+            with open(HIDDEN_GUIDES_FILE, "r") as f:
+                return set(json.load(f))
+        except:
+            return set()
+    return set()
 
 # Custom CSS for minimalist, professional styling
 st.markdown("""
@@ -107,6 +125,21 @@ st.markdown("""
         color: #57606a;
         font-weight: 500;
     }
+
+    /* Simple delete buttons */
+    .stButton button[key*="delete_"] {
+        background: transparent !important;
+        border: none !important;
+        color: #6e7781 !important;
+        padding: 2px 8px !important;
+        font-size: 1.2rem !important;
+        transition: color 0.2s ease;
+    }
+
+    .stButton button[key*="delete_"]:hover {
+        color: #24292e !important;
+        background: transparent !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -122,6 +155,10 @@ if 'show_document' not in st.session_state:
     st.session_state.show_document = False
 if 'original_filename' not in st.session_state:
     st.session_state.original_filename = None
+if 'confirm_clear_guides' not in st.session_state:
+    st.session_state.confirm_clear_guides = False
+if 'hidden_guides' not in st.session_state:
+    st.session_state.hidden_guides = set()
 
 # --- 3. Sidebar: Settings & Knowledge Base ---
 with st.sidebar:
@@ -153,11 +190,38 @@ with st.sidebar:
             f.write(uploaded_guide.getbuffer())
         st.rerun()
 
-    st.caption("Active Guides:")
+    # Display active guides with delete options
     supported_exts = ('.md', '.pdf', '.docx', '.html', '.htm', '.txt')
-    for g in os.listdir("guides"):
-        if g.lower().endswith(supported_exts):
-            st.text(f"• {g}")
+    all_guide_files = [g for g in os.listdir("guides") if g.lower().endswith(supported_exts)]
+    # Filter out hidden guides
+    guide_files = [g for g in all_guide_files if g not in st.session_state.hidden_guides]
+
+    if guide_files:
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.caption("Active Guides:")
+        with col2:
+            # Confirmation flow for Clear
+            if st.session_state.confirm_clear_guides:
+                if st.button("Confirm?", key="confirm_clear", type="primary"):
+                    st.session_state.hidden_guides.update(guide_files)
+                    st.session_state.confirm_clear_guides = False
+                    st.rerun()
+            else:
+                if st.button("Clear", key="clear_all_guides"):
+                    st.session_state.confirm_clear_guides = True
+                    st.rerun()
+
+        for g in guide_files:
+            col1, col2 = st.columns([5, 1])
+            with col1:
+                st.text(f"• {g}")
+            with col2:
+                if st.button("x", key=f"delete_{g}"):
+                    st.session_state.hidden_guides.add(g)
+                    st.rerun()
+    else:
+        st.caption("No guides uploaded yet.")
 
 # --- 4. Main Application Header ---
 st.title("RHEA (Red Hat Editorial Auditor)")
