@@ -1,4 +1,4 @@
-this linter is an editorial tool for auditing technical content against Red Hat brand voice standards. This application uses Ollama and Model Context Protocol (MCP) to provide real-time, rule-based rewriting suggestions.
+this linter is an editorial tool for auditing technical content against W.I.P brand voice standards. This application uses Ollama and Model Context Protocol (MCP) to provide real-time, rule-based rewriting suggestions.
 
 ## Prerequisites
 
@@ -44,7 +44,7 @@ For a completely isolated environment with zero dependencies:
 ## Features
 
 ### Configuration Sidebar
-The sidebar is the central hub for RHEA's intelligence:
+The sidebar is the central hub for WIPEA's intelligence:
 * **Model Selection**: Pick your preferred Ollama model (defaults to `qwen2.5:3b` for optimal speed)
     * **Note**: You must use a model that supports **Tool Calling** (e.g., qwen2.5, llama3.1, mistral, or command-r). Without tool calling, the agent cannot query the style guides.
 * **Knowledge Base (Intelligent RAG)**: Manage your style guides with advanced semantic search
@@ -55,7 +55,7 @@ The sidebar is the central hub for RHEA's intelligence:
     * Automatically cached for instant subsequent searches
 
 ### Side-by-Side Review
-RHEA provides a GitHub-style diff view to compare original text (red) with proposed rewrites (green).
+WIPEA provides a GitHub-style diff view to compare original text (red) with proposed rewrites (green).
 * **Accept/Reject**: Choose to commit or ignore suggestions line-by-line.
 * **Bulk Actions**: Use the "Accept All" or "Reject All" buttons to speed up large document reviews.
 * **Paper Trail**: Expand the "Sources" on any suggestion to see exactly which style guide rule triggered the AI's feedback.

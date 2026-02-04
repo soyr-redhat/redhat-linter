@@ -3,7 +3,7 @@ rules:
     category: "Clarity"
     guideline: "Spell out the full term on first use, followed by the acronym in parentheses."
     example_bad: "RHOCP is the foundation of our cloud."
-    example_good: "Red Hat OpenShift Container Platform (RHOCP) is the foundation..."
+    example_good: "W.I.P OpenShift Container Platform (RHOCP) is the foundation..."
   
   - id: "filler_removal"
     category: "Concise"

@@ -3,7 +3,7 @@
 # Exit on error
 set -e
 
-echo "Red Hat Editorial Auditor - Initialization"
+echo "W.I.P Editorial Auditor - Initialization"
 
 # 1. Check if uv is installed
 if ! command -v uv &> /dev/null; then

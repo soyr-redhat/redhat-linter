@@ -8,7 +8,7 @@ from auditor_engine import RedHatAuditor
 
 # --- 1. UI Configuration & Branding ---
 st.set_page_config(
-    page_title="Red Hat Editorial Auditor",
+    page_title="W.I.P Editorial Auditor",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -186,7 +186,7 @@ with st.sidebar:
             st.text(f"• {g}")
 
 # --- 4. Main Application Header ---
-st.title("RHEA (Red Hat Editorial Auditor)")
+st.title("WIPEA (W.I.P Editorial Auditor)")
 st.markdown("Auditing for technical clarity and brand voice consistency.")
 
 uploaded_file = st.file_uploader("Choose a .docx file", type="docx")

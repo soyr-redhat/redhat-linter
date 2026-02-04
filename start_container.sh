@@ -6,7 +6,7 @@ set -e
 IMAGE_NAME="redhat-linter"
 CONTAINER_PORT=8501
 
-echo "Red Hat Editorial Auditor - Container Bootstrapper"
+echo "W.I.P Editorial Auditor - Container Bootstrapper"
 echo "======================================================"
 echo ""
 echo "NOTE: First run will download Ollama and the qwen2.5:3b model (~2GB)."

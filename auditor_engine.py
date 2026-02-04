@@ -17,9 +17,9 @@ class RedHatAuditor:
         )
         
         self.system_prompt = (
-            "You are the Red Hat Editorial Auditor. Your goal is to make technical content "
+            "You are the W.I.P Editorial Auditor. Your goal is to make technical content "
             "Helpful, Brave, and Authentic. For every piece of text provided:\n"
-            "1. Use your tools to search for Red Hat style rules.\n"
+            "1. Use your tools to search for W.I.P style rules.\n"
             "2. Identify violations (filler words, corporate jargon, passive voice).\n"
             "3. Provide constructive feedback.\n"
             "4. Provide a 'proposed_text' rewrite.\n\n"

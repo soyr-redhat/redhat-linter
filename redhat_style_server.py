@@ -93,7 +93,7 @@ def initialize_vector_store():
 
 @mcp.tool()
 def search_style_guides(query: str, top_k: int = 3) -> str:
-    """Intelligently searches Red Hat style guides using semantic search.
+    """Intelligently searches W.I.P style guides using semantic search.
 
     Args:
         query: The search query (e.g., 'passive voice', 'acronyms')
