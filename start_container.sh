@@ -7,6 +7,12 @@ IMAGE_NAME="redhat-linter"
 CONTAINER_PORT=8501
 
 echo "Red Hat Editorial Auditor - Container Bootstrapper"
+echo "======================================================"
+echo ""
+echo "NOTE: First run will download Ollama and the qwen2.5:3b model (~2GB)."
+echo "This may take 5-10 minutes depending on your internet connection."
+echo "Subsequent runs will be much faster."
+echo ""
 
 # 1. Detect Container Engine
 if command -v podman &> /dev/null; then
@@ -15,6 +21,7 @@ elif command -v docker &> /dev/null; then
     ENGINE="docker"
 else
     echo "Error: No container engine (Podman or Docker) found."
+    echo "Please install Docker or Podman to continue."
     exit 1
 fi
 
@@ -24,19 +31,13 @@ echo "Using container engine: $ENGINE"
 echo "Building container image: $IMAGE_NAME..."
 $ENGINE build -t $IMAGE_NAME .
 
-# 3. Determine Host Gateway
-# On Mac/Windows, 'host.docker.internal' is standard. 
-# We map this so the container can talk to the host's Ollama.
-GATEWAY="host.docker.internal"
+echo ""
+echo "Starting container..."
+echo "Access the app at: http://localhost:$CONTAINER_PORT"
+echo ""
 
-echo "Starting container on http://localhost:$CONTAINER_PORT..."
-echo "Bridging to Ollama on host via $GATEWAY..."
-
-# 4. Run the Container
-# --add-host maps the gateway so the app can reach the host machine
-# -e OLLAMA_HOST tells app.py where to look
+# 3. Run the Container
+# Fully self-contained - Ollama runs inside the container
 $ENGINE run -it --rm \
     -p $CONTAINER_PORT:$CONTAINER_PORT \
-    --add-host=$GATEWAY:host-gateway \
-    -e OLLAMA_HOST=http://$GATEWAY:11434 \
     $IMAGE_NAME
