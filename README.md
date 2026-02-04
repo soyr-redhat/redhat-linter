@@ -1,6 +1,4 @@
-# RHEA (Red Hat Editorial Auditor)
-
-RHEA is an editorial tool for auditing technical content against Red Hat brand voice standards. This application uses Ollama and Model Context Protocol (MCP) to provide real-time, rule-based rewriting suggestions.
+this linter is an editorial tool for auditing technical content against Red Hat brand voice standards. This application uses Ollama and Model Context Protocol (MCP) to provide real-time, rule-based rewriting suggestions.
 
 ## Prerequisites
 
