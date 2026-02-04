@@ -1,6 +1,19 @@
+# Temporary files
 temp_*.docx
+.DS_Store
+
+# App-specific
 .hidden_guides.json
 .vector_db/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
 
 # Ignore all files in guides/ but keep the folder structure
 guides/*
