@@ -8,44 +8,105 @@ from auditor_engine import RedHatAuditor
 # --- 1. UI Configuration & Branding ---
 st.set_page_config(
     page_title="Red Hat Editorial Auditor",
-    page_icon="🎩",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip('/')
 
-# Custom CSS for the Side-by-Side Editor and Status Animations
+# Custom CSS for minimalist, professional styling
 st.markdown("""
     <style>
-    /* GitHub-style Diff Highlighting */
+    /* Clean Diff Highlighting */
     .diff-box {
-        padding: 12px;
-        border-radius: 6px;
-        font-family: 'Source Code Pro', monospace;
+        padding: 16px;
+        border-radius: 4px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         font-size: 0.95rem;
-        min-height: 100px;
-        border: 1px solid #e1e4e8;
-        line-height: 1.5;
+        min-height: 60px;
+        border: 1px solid #d0d7de;
+        line-height: 1.6;
     }
-    .original-side { background-color: #ffeef0; color: #b31d28; text-decoration: line-through; }
-    .proposed-side { background-color: #e6ffed; color: #22863a; font-weight: 500; }
-    .accepted-side { background-color: #ffffff; color: #24292e; border: 2px solid #28a745; position: relative; }
-    .accepted-side::after { content: "✅ ACCEPTED"; position: absolute; top: 5px; right: 10px; font-size: 0.7rem; color: #28a745; font-weight: bold; }
-    
-    /* Center Button Column Styling */
+    .original-side {
+        background-color: #fff5f5;
+        color: #cf222e;
+        border-left: 3px solid #cf222e;
+    }
+    .proposed-side {
+        background-color: #f6fff8;
+        color: #1a7f37;
+        border-left: 3px solid #1a7f37;
+    }
+    .accepted-side {
+        background-color: #ffffff;
+        color: #24292e;
+        border: 2px solid #1a7f37;
+        position: relative;
+    }
+    .accepted-side::after {
+        content: "ACCEPTED";
+        position: absolute;
+        top: 8px;
+        right: 12px;
+        font-size: 0.7rem;
+        color: #1a7f37;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    /* Row container */
+    .diff-row {
+        margin-bottom: 16px;
+    }
+
+    /* Center Button Column */
     .merge-tools {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         height: 100%;
-        gap: 10px;
+        gap: 12px;
     }
 
-    /* Pulse animation for the loading status */
-    .status-text { color: #cc0000; font-weight: bold; animation: pulse 2s infinite; }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+    /* Loading animation */
+    .status-text {
+        color: #cc0000;
+        font-weight: 600;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+
+    /* Clean page viewer */
+    .page-container {
+        background: white;
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+        padding: 40px;
+        min-height: 400px;
+        max-height: 600px;
+        overflow-y: auto;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        line-height: 1.7;
+        color: #24292e;
+    }
+
+    .page-indicator {
+        position: absolute;
+        top: 12px;
+        right: 16px;
+        background: #f6f8fa;
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        color: #57606a;
+        font-weight: 500;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -54,9 +115,13 @@ st.markdown("""
 if 'audit_results' not in st.session_state:
     st.session_state.audit_results = None
 if 'edits' not in st.session_state:
-    st.session_state.edits = {} 
+    st.session_state.edits = {}
 if 'metrics' not in st.session_state:
     st.session_state.metrics = None
+if 'show_document' not in st.session_state:
+    st.session_state.show_document = False
+if 'original_filename' not in st.session_state:
+    st.session_state.original_filename = None
 
 # --- 3. Sidebar: Settings & Knowledge Base ---
 with st.sidebar:
@@ -77,17 +142,22 @@ with st.sidebar:
     st.subheader("Knowledge Base")
     if not os.path.exists("guides"):
         os.makedirs("guides")
-    
-    uploaded_guide = st.file_uploader("Upload Style Guide (.md)", type="md")
+
+    uploaded_guide = st.file_uploader(
+        "Upload Style Guide",
+        type=["md", "pdf", "docx", "html", "htm", "txt"],
+        help="Supports: Markdown, PDF, DOCX, HTML, TXT"
+    )
     if uploaded_guide:
         with open(os.path.join("guides", uploaded_guide.name), "wb") as f:
             f.write(uploaded_guide.getbuffer())
         st.rerun()
-    
+
     st.caption("Active Guides:")
+    supported_exts = ('.md', '.pdf', '.docx', '.html', '.htm', '.txt')
     for g in os.listdir("guides"):
-        if g.endswith(".md"):
-            st.text(f"📖 {g}")
+        if g.lower().endswith(supported_exts):
+            st.text(f"• {g}")
 
 # --- 4. Main Application Header ---
 st.title("RHEA (Red Hat Editorial Auditor)")
@@ -119,6 +189,8 @@ if uploaded_file:
             st.session_state.audit_results = results
             st.session_state.metrics = auditor.calculate_metrics(results)
             st.session_state.edits = {} # Reset edits for new run
+            st.session_state.show_document = False # Reset document viewer
+            st.session_state.original_filename = uploaded_file.name # Store original filename
             status_placeholder.empty()
             st.rerun()
         except Exception as e:
@@ -139,13 +211,13 @@ if st.session_state.audit_results:
     # Bulk Action Header
     st.subheader("Review")
     b1, b2, b3, _ = st.columns([1, 1, 1, 3])
-    if b1.button("✅ Accept All"):
+    if b1.button("Accept All", type="primary"):
         for i in range(len(st.session_state.audit_results)): st.session_state.edits[i] = "accepted"
         st.rerun()
-    if b2.button("❌ Reject All"):
+    if b2.button("Reject All"):
         for i in range(len(st.session_state.audit_results)): st.session_state.edits[i] = "rejected"
         st.rerun()
-    if b3.button("🔄 Reset"):
+    if b3.button("Reset"):
         st.session_state.edits = {}; st.rerun()
 
     final_document = []
@@ -162,6 +234,8 @@ if st.session_state.audit_results:
         status = st.session_state.edits.get(idx, "pending")
         final_document.append(item['proposed_text'] if status == "accepted" else item['text'])
 
+        # Static container for each diff row
+        st.markdown("<div class='diff-row'>", unsafe_allow_html=True)
         row_orig, row_act, row_prop = st.columns([4, 1, 4])
 
         # Left Column: Original
@@ -169,20 +243,20 @@ if st.session_state.audit_results:
             box_style = "original-side" if status != "rejected" else ""
             st.markdown(f"<div class='diff-box {box_style}'>{item['text']}</div>", unsafe_allow_html=True)
             if status == "pending":
-                st.caption(f"💡 {item['feedback']}")
+                st.caption(f"Note: {item['feedback']}")
 
         # Middle Column: Decision Buttons
         with row_act:
             st.markdown("<div class='merge-tools'>", unsafe_allow_html=True)
             if status == "pending":
-                if st.button("➡️", key=f"acc_{idx}", help="Accept Rewrite"):
+                if st.button("Accept", key=f"acc_{idx}", type="primary"):
                     st.session_state.edits[idx] = "accepted"
                     st.rerun()
-                if st.button("✖️", key=f"rej_{idx}", help="Keep Original"):
+                if st.button("Reject", key=f"rej_{idx}"):
                     st.session_state.edits[idx] = "rejected"
                     st.rerun()
             else:
-                if st.button("↩️", key=f"undo_{idx}"):
+                if st.button("Undo", key=f"undo_{idx}"):
                     st.session_state.edits[idx] = "pending"
                     st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
@@ -198,12 +272,32 @@ if st.session_state.audit_results:
                 if item['paper_trail']:
                     st.caption(f"Sources: {', '.join(item['paper_trail'])}")
 
-    # Final Document Preview and Export
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # Final Document Export
     st.divider()
-    st.subheader("Final Preview")
     full_text = "\n\n".join(final_document)
-    st.text_area("Corrected Text", value=full_text, height=300)
-    st.download_button("Download Result", data=full_text, file_name="audited_redhat_content.txt")
+
+    # View/Hide document button
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("View Document" if not st.session_state.show_document else "Hide Document", use_container_width=True):
+            st.session_state.show_document = not st.session_state.show_document
+            st.rerun()
+
+    # Generate download filename from original
+    if st.session_state.original_filename:
+        base_name = st.session_state.original_filename.rsplit('.', 1)[0]
+        download_filename = f"{base_name}_revised.txt"
+    else:
+        download_filename = "audited_document_revised.txt"
+
+    with col2:
+        st.download_button("Download Audited Document", data=full_text, file_name=download_filename, type="primary", use_container_width=True)
+
+    # Show full document if toggled
+    if st.session_state.show_document:
+        st.markdown("<div class='page-container'>{}</div>".format(full_text.replace('\n', '<br>')), unsafe_allow_html=True)
 
     # Local cleanup
     if os.path.exists(temp_path):

@@ -1,6 +1,7 @@
 import os
 from docx import Document
 from typing import List, Dict
+from docling.document_converter import DocumentConverter
 
 class RedHatParser:
     def __init__(self, file_path: str):
@@ -43,23 +44,43 @@ class RedHatParser:
 
 # --- Logic for the 'Guides' Directory ---
 
+def process_document_with_docling(file_path: str) -> str:
+    """
+    Uses docling to process various document formats (PDF, DOCX, HTML, etc.)
+    and extract clean text content.
+    """
+    try:
+        converter = DocumentConverter()
+        result = converter.convert(file_path)
+        return result.document.export_to_markdown()
+    except Exception as e:
+        return f"Error processing {file_path} with docling: {str(e)}"
+
 def load_guides(guides_dir: str = "guides") -> Dict[str, str]:
     """
-    Reads all .md files in the guides directory to prepare for 
-    embedding or direct context injection.
+    Reads all document files in the guides directory using docling.
+    Supports: .md, .pdf, .docx, .html, .htm, .txt
     """
     guides_context = {}
     if not os.path.exists(guides_dir):
         os.makedirs(guides_dir)
         return {"error": "Guides directory was missing and has been created."}
 
+    supported_extensions = ('.md', '.pdf', '.docx', '.html', '.htm', '.txt')
+
     for filename in os.listdir(guides_dir):
-        if filename.endswith(".md"):
-            with open(os.path.join(guides_dir, filename), "r", encoding="utf-8") as f:
-                # Use filename as the 'key' so the AI knows which guide it's looking at
-                guide_name = filename.replace(".md", "")
-                guides_context[guide_name] = f.read()
-                
+        file_path = os.path.join(guides_dir, filename)
+
+        if filename.lower().endswith(supported_extensions):
+            guide_name = os.path.splitext(filename)[0]
+
+            # Use docling for all formats except plain markdown
+            if filename.endswith('.md'):
+                with open(file_path, "r", encoding="utf-8") as f:
+                    guides_context[guide_name] = f.read()
+            else:
+                guides_context[guide_name] = process_document_with_docling(file_path)
+
     return guides_context
 
 # Example usage for testing:
