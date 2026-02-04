@@ -1,1 +1,5 @@
 temp_*.docx
+
+# Ignore all files in guides/ but keep the folder structure
+guides/*
+!guides/.gitkeep
