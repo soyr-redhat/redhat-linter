@@ -3,7 +3,7 @@ FROM python:3.12-slim
 
 # Install system dependencies and Ollama
 RUN apt-get update && apt-get install -y \
-    curl \
+    curl zstd \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Ollama
