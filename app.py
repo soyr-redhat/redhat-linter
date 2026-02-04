@@ -125,21 +125,6 @@ st.markdown("""
         color: #57606a;
         font-weight: 500;
     }
-
-    /* Simple delete buttons */
-    .stButton button[key*="delete_"] {
-        background: transparent !important;
-        border: none !important;
-        color: #6e7781 !important;
-        padding: 2px 8px !important;
-        font-size: 1.2rem !important;
-        transition: color 0.2s ease;
-    }
-
-    .stButton button[key*="delete_"]:hover {
-        color: #24292e !important;
-        background: transparent !important;
-    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -158,7 +143,7 @@ if 'original_filename' not in st.session_state:
 if 'confirm_clear_guides' not in st.session_state:
     st.session_state.confirm_clear_guides = False
 if 'hidden_guides' not in st.session_state:
-    st.session_state.hidden_guides = set()
+    st.session_state.hidden_guides = load_hidden_guides()
 
 # --- 3. Sidebar: Settings & Knowledge Base ---
 with st.sidebar:
@@ -168,9 +153,13 @@ with st.sidebar:
     try:
         resp = httpx.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=1)
         models = [m['name'] for m in resp.json()['models']]
-        selected_model = st.selectbox("LLM Model", options=models, index=0)
+        # Set qwen2.5:3b as default if available
+        default_index = 0
+        if "qwen2.5:3b" in models:
+            default_index = models.index("qwen2.5:3b")
+        selected_model = st.selectbox("LLM Model", options=models, index=default_index)
     except:
-        selected_model = "llama3.1"
+        selected_model = "qwen2.5:3b"
         st.error("Ollama Offline")
 
     st.divider()
@@ -190,38 +179,11 @@ with st.sidebar:
             f.write(uploaded_guide.getbuffer())
         st.rerun()
 
-    # Display active guides with delete options
+    st.caption("Active Guides:")
     supported_exts = ('.md', '.pdf', '.docx', '.html', '.htm', '.txt')
-    all_guide_files = [g for g in os.listdir("guides") if g.lower().endswith(supported_exts)]
-    # Filter out hidden guides
-    guide_files = [g for g in all_guide_files if g not in st.session_state.hidden_guides]
-
-    if guide_files:
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.caption("Active Guides:")
-        with col2:
-            # Confirmation flow for Clear
-            if st.session_state.confirm_clear_guides:
-                if st.button("Confirm?", key="confirm_clear", type="primary"):
-                    st.session_state.hidden_guides.update(guide_files)
-                    st.session_state.confirm_clear_guides = False
-                    st.rerun()
-            else:
-                if st.button("Clear", key="clear_all_guides"):
-                    st.session_state.confirm_clear_guides = True
-                    st.rerun()
-
-        for g in guide_files:
-            col1, col2 = st.columns([5, 1])
-            with col1:
-                st.text(f"• {g}")
-            with col2:
-                if st.button("x", key=f"delete_{g}"):
-                    st.session_state.hidden_guides.add(g)
-                    st.rerun()
-    else:
-        st.caption("No guides uploaded yet.")
+    for g in os.listdir("guides"):
+        if g.lower().endswith(supported_exts):
+            st.text(f"• {g}")
 
 # --- 4. Main Application Header ---
 st.title("RHEA (Red Hat Editorial Auditor)")

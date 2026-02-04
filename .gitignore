@@ -1,4 +1,6 @@
 temp_*.docx
+.hidden_guides.json
+.vector_db/
 
 # Ignore all files in guides/ but keep the folder structure
 guides/*
