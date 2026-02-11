@@ -99,23 +99,38 @@ def search_style_guides(query: str, top_k: int = 3) -> str:
         query: The search query (e.g., 'passive voice', 'acronyms')
         top_k: Number of most relevant chunks to return (default: 3)
     """
+    import sys
+
+    # Debug logging to stderr (will show in terminal)
+    print(f"[MCP DEBUG] Tool called with query: '{query}', top_k={top_k}", file=sys.stderr)
+
     try:
         store = initialize_vector_store()
         if store is None:
+            print("[MCP DEBUG] ERROR: Vector store is None", file=sys.stderr)
             return "Error: No style guides available."
+
+        print(f"[MCP DEBUG] Vector store initialized successfully", file=sys.stderr)
 
         # Perform semantic search
         results = store.similarity_search_with_score(query, k=top_k)
 
         if not results:
+            print("[MCP DEBUG] No results found for query", file=sys.stderr)
             return "No specific guideline found."
+
+        print(f"[MCP DEBUG] Found {len(results)} results", file=sys.stderr)
 
         # Format results with relevance scores
         formatted_results = []
-        for doc, score in results:
+        for idx, (doc, score) in enumerate(results):
             source = doc.metadata.get('source', 'Unknown')
             # Lower score = more relevant in some systems, normalize to percentage
             relevance = max(0, min(100, int((1 - score) * 100)))
+
+            print(f"[MCP DEBUG] Result {idx+1}: {source} (score={score:.4f}, relevance={relevance}%)", file=sys.stderr)
+            print(f"[MCP DEBUG] Content preview: {doc.page_content[:100]}...", file=sys.stderr)
+
             formatted_results.append(
                 f"📚 {source} (relevance: {relevance}%)\n{doc.page_content}"
             )
@@ -123,6 +138,9 @@ def search_style_guides(query: str, top_k: int = 3) -> str:
         return "\n\n".join(formatted_results)
 
     except Exception as e:
+        print(f"[MCP DEBUG] Exception occurred: {str(e)}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
         return f"Search error: {str(e)}"
 
 if __name__ == "__main__":

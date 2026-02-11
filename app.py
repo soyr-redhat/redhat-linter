@@ -205,9 +205,9 @@ if uploaded_file:
             status_placeholder.markdown(f"<p class='status-text'>{text}</p>", unsafe_allow_html=True)
 
         auditor = RedHatAuditor(model_name=selected_model, base_url=OLLAMA_BASE_URL)
-        
+
         async def perform_audit():
-            await auditor.initialize_tools()
+            # Agent now uses lazy initialization - no need to call initialize_tools explicitly
             return await auditor.run_audit(temp_path, status_callback=update_ui_status)
         
         try:
