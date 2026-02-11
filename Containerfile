@@ -46,13 +46,14 @@ for i in {1..30}; do\n\
 done\n\
 \n\
 # Pull the required model if not present\n\
-echo "Checking for model qwen2.5:3b..."\n\
-if ! ollama list | grep -q "qwen2.5:3b"; then\n\
-  echo "Pulling qwen2.5:3b model (this may take a few minutes on first run)..."\n\
-  ollama pull qwen2.5:3b\n\
+echo "Checking for model llama3.1:8b..."\n\
+if ! ollama list | grep -q "llama3.1:8b"; then\n\
+  echo "Pulling llama3.1:8b model (~5GB - first run may take 10-15 minutes)..."\n\
+  echo "This model provides excellent tool-calling for style guide integration."\n\
+  ollama pull llama3.1:8b\n\
   echo "Model downloaded successfully!"\n\
 else\n\
-  echo "Model qwen2.5:3b already available."\n\
+  echo "Model llama3.1:8b already available."\n\
 fi\n\
 \n\
 # Start Streamlit\n\

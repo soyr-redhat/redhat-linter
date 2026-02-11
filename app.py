@@ -153,13 +153,25 @@ with st.sidebar:
     try:
         resp = httpx.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=1)
         models = [m['name'] for m in resp.json()['models']]
-        # Set qwen2.5:3b as default if available
+
+        # Prioritize models with good tool-calling capabilities
+        preferred_models = ["llama3.1:8b", "qwen2.5:7b", "llama3.1:70b", "qwen2.5:14b"]
         default_index = 0
-        if "qwen2.5:3b" in models:
-            default_index = models.index("qwen2.5:3b")
-        selected_model = st.selectbox("LLM Model", options=models, index=default_index)
+
+        # Find the first available preferred model
+        for preferred in preferred_models:
+            if preferred in models:
+                default_index = models.index(preferred)
+                break
+
+        selected_model = st.selectbox(
+            "LLM Model",
+            options=models,
+            index=default_index,
+            help="💡 Recommended: llama3.1:8b or qwen2.5:7b for best tool-calling performance"
+        )
     except:
-        selected_model = "qwen2.5:3b"
+        selected_model = "llama3.1:8b"
         st.error("Ollama Offline")
 
     st.divider()

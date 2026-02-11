@@ -8,7 +8,7 @@ from langchain.agents import create_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
 class RedHatAuditor:
-    def __init__(self, model_name="llama3.1", base_url="http://localhost:11434"):
+    def __init__(self, model_name="llama3.1:8b", base_url="http://localhost:11434"):
         # Model configured for JSON mode to ensure schema reliability
         self.llm = ChatOllama(
             model=model_name,

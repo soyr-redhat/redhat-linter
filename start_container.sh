@@ -9,8 +9,9 @@ CONTAINER_PORT=8501
 echo "W.I.P Editorial Auditor - Container Bootstrapper"
 echo "======================================================"
 echo ""
-echo "NOTE: First run will download Ollama and the qwen2.5:3b model (~2GB)."
-echo "This may take 5-10 minutes depending on your internet connection."
+echo "NOTE: First run will download Ollama and the llama3.1:8b model (~5GB)."
+echo "This model provides excellent tool-calling for style guide integration."
+echo "Download may take 10-15 minutes depending on your internet connection."
 echo "Subsequent runs will be much faster."
 echo ""
 

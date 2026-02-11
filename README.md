@@ -25,7 +25,7 @@ This will:
 - Install `uv` package manager if needed
 - Install all Python dependencies
 - Check Ollama is running
-- Pull the `qwen2.5:3b` model (fast, optimized for editorial tasks)
+- Pull the `llama3.1:8b` model (excellent tool-calling for style guide integration)
 - Start the Streamlit app at http://localhost:8501
 
 ### Option 2: Container (Fully Automated)
@@ -35,9 +35,9 @@ For a completely isolated environment with zero dependencies:
 ./start_container.sh
 ```
 
-**First run will take 5-10 minutes** as it downloads:
+**First run will take 10-15 minutes** as it downloads:
 - Ollama (~500MB)
-- The `qwen2.5:3b` model (~2GB)
+- The `llama3.1:8b` model (~5GB)
 - All Python dependencies
 
 **Subsequent runs start in seconds** - everything is cached inside the container.
@@ -45,8 +45,9 @@ For a completely isolated environment with zero dependencies:
 
 ### Configuration Sidebar
 The sidebar is the central hub for WIPEA's intelligence:
-* **Model Selection**: Pick your preferred Ollama model (defaults to `qwen2.5:3b` for optimal speed)
-    * **Note**: You must use a model that supports **Tool Calling** (e.g., qwen2.5, llama3.1, mistral, or command-r). Without tool calling, the agent cannot query the style guides.
+* **Model Selection**: Pick your preferred Ollama model (defaults to `llama3.1:8b` for best tool-calling performance)
+    * **Recommended**: llama3.1:8b or qwen2.5:7b+ for reliable tool calling
+    * **Note**: You must use a model that supports **Tool Calling**. Without tool calling, the agent cannot query the style guides.
 * **Knowledge Base (Intelligent RAG)**: Manage your style guides with advanced semantic search
     * Upload documents in multiple formats: **PDF, DOCX, Markdown, HTML, TXT**
     * Powered by **docling** for intelligent document parsing
@@ -66,7 +67,7 @@ WIPEA provides a GitHub-style diff view to compare original text (red) with prop
 2.  **LangGraph Agent**: Orchestrates the auditing logic and decides when to search for rules.
 3.  **MCP Server with RAG**: A background process that provides intelligent semantic search over style guides
     - **Docling**: Parses PDFs, DOCX, and other formats into clean markdown
-    - **Vector Embeddings**: Uses `sentence-transformers/all-MiniLM-L6-v2` for semantic understanding
+    - **Vector Embeddings**: Uses `sentence-transformers/all-mpnet-base-v2` for high-quality semantic understanding
     - **ChromaDB**: Local vector database for fast similarity search
-    - Returns only the top-3 most relevant chunks instead of entire documents
-4.  **Local LLM**: Powered by Ollama for privacy-first, local inference (defaults to `qwen2.5:3b` for speed).
+    - Returns only the top-5 most relevant chunks instead of entire documents
+4.  **Local LLM**: Powered by Ollama for privacy-first, local inference (defaults to `llama3.1:8b` for reliable tool-calling).

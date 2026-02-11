@@ -29,12 +29,13 @@ if ! curl -s http://localhost:11434/api/tags > /dev/null; then
 fi
 
 # 5. Model Management
-REQUIRED_MODEL="qwen2.5:3b"
+REQUIRED_MODEL="llama3.1:8b"
 echo "Verifying local model: $REQUIRED_MODEL"
 
 # Check if model exists in local library
 if ! ollama list | grep -q "$REQUIRED_MODEL"; then
-    echo "Model '$REQUIRED_MODEL' not found. Pulling now..."
+    echo "Model '$REQUIRED_MODEL' not found. Pulling now (~4.9GB)..."
+    echo "This model has excellent tool-calling capabilities for better style guide integration."
     ollama pull "$REQUIRED_MODEL"
     echo "Model successfully installed."
 else
