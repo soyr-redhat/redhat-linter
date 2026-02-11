@@ -62,20 +62,32 @@ def initialize_vector_store():
     if vector_store is not None and current_hash == last_guides_hash:
         return vector_store
 
-    # Chunk the documents
+    # Chunk the documents with improved settings for better retrieval
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=50,
-        separators=["\n\n", "\n", ". ", " ", ""]
+        chunk_size=1200,      # Increased from 500 to capture more context
+        chunk_overlap=200,    # Increased from 50 to preserve continuity
+        separators=["\n# ", "\n## ", "\n### ", "\n\n", "\n", ". ", " ", ""]  # Added heading separators
     )
 
     documents = []
     for guide_name, content in active_guides.items():
         chunks = text_splitter.split_text(content)
         for i, chunk in enumerate(chunks):
+            # Extract potential section header from chunk for better metadata
+            lines = chunk.split('\n')
+            section_header = ""
+            for line in lines:
+                if line.startswith('#'):
+                    section_header = line.strip('#').strip()
+                    break
+
             documents.append(Document(
                 page_content=chunk,
-                metadata={"source": guide_name, "chunk": i}
+                metadata={
+                    "source": guide_name,
+                    "chunk": i,
+                    "section": section_header  # Add section context
+                }
             ))
 
     if not documents:
@@ -92,12 +104,12 @@ def initialize_vector_store():
     return vector_store
 
 @mcp.tool()
-def search_style_guides(query: str, top_k: int = 3) -> str:
+def search_style_guides(query: str, top_k: int = 5) -> str:
     """Intelligently searches W.I.P style guides using semantic search.
 
     Args:
         query: The search query (e.g., 'passive voice', 'acronyms')
-        top_k: Number of most relevant chunks to return (default: 3)
+        top_k: Number of most relevant chunks to return (default: 5, increased from 3)
     """
     import sys
 
@@ -112,8 +124,8 @@ def search_style_guides(query: str, top_k: int = 3) -> str:
 
         print(f"[MCP DEBUG] Vector store initialized successfully", file=sys.stderr)
 
-        # Perform semantic search
-        results = store.similarity_search_with_score(query, k=top_k)
+        # Perform semantic search with more candidates to filter
+        results = store.similarity_search_with_score(query, k=top_k * 2)
 
         if not results:
             print("[MCP DEBUG] No results found for query", file=sys.stderr)
@@ -121,21 +133,51 @@ def search_style_guides(query: str, top_k: int = 3) -> str:
 
         print(f"[MCP DEBUG] Found {len(results)} results", file=sys.stderr)
 
-        # Format results with relevance scores
+        # Filter and deduplicate results
+        seen_content = set()
         formatted_results = []
+        result_count = 0
+
         for idx, (doc, score) in enumerate(results):
+            # Skip if we've seen very similar content
+            content_hash = hash(doc.page_content[:200])
+            if content_hash in seen_content:
+                print(f"[MCP DEBUG] Skipping duplicate result {idx+1}", file=sys.stderr)
+                continue
+            seen_content.add(content_hash)
+
+            # Skip results with very poor relevance (score > 1.5 is usually irrelevant for cosine)
+            if score > 1.5:
+                print(f"[MCP DEBUG] Skipping low-relevance result {idx+1} (score={score:.4f})", file=sys.stderr)
+                continue
+
             source = doc.metadata.get('source', 'Unknown')
-            # Lower score = more relevant in some systems, normalize to percentage
-            relevance = max(0, min(100, int((1 - score) * 100)))
+            section = doc.metadata.get('section', '')
+
+            # Normalize score to percentage (lower score = better match)
+            relevance = max(0, min(100, int((1.5 - score) / 1.5 * 100)))
 
             print(f"[MCP DEBUG] Result {idx+1}: {source} (score={score:.4f}, relevance={relevance}%)", file=sys.stderr)
-            print(f"[MCP DEBUG] Content preview: {doc.page_content[:100]}...", file=sys.stderr)
+            if section:
+                print(f"[MCP DEBUG]   Section: {section}", file=sys.stderr)
+            print(f"[MCP DEBUG]   Content preview: {doc.page_content[:150]}...", file=sys.stderr)
 
-            formatted_results.append(
-                f"📚 {source} (relevance: {relevance}%)\n{doc.page_content}"
-            )
+            # Include section header in output if available
+            header = f"📚 {source}"
+            if section:
+                header += f" - {section}"
+            header += f" (relevance: {relevance}%)"
 
-        return "\n\n".join(formatted_results)
+            formatted_results.append(f"{header}\n{doc.page_content}")
+
+            result_count += 1
+            if result_count >= top_k:
+                break
+
+        if not formatted_results:
+            return "No relevant guidelines found for this query."
+
+        return "\n\n---\n\n".join(formatted_results)
 
     except Exception as e:
         print(f"[MCP DEBUG] Exception occurred: {str(e)}", file=sys.stderr)
