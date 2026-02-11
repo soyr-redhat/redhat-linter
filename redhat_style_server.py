@@ -15,10 +15,12 @@ GUIDES_DIR = os.path.join(current_dir, "guides")
 HIDDEN_GUIDES_FILE = os.path.join(current_dir, ".hidden_guides.json")
 VECTOR_DB_DIR = os.path.join(current_dir, ".vector_db")
 
-# Initialize embeddings model (lightweight, runs locally)
+# Initialize embeddings model (upgraded for better semantic search quality)
+# all-mpnet-base-v2 is significantly better than all-MiniLM-L6-v2 for semantic similarity
 embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
-    model_kwargs={'device': 'cpu'}
+    model_name="sentence-transformers/all-mpnet-base-v2",
+    model_kwargs={'device': 'cpu'},
+    encode_kwargs={'normalize_embeddings': True}  # Improves cosine similarity
 )
 
 # Global vector store
